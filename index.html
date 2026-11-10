@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="从题库随机组卷、自动判分、逐题回顾解析的本地刷题工具">
+  <title>医考刷题 · 随机组卷自测</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+  <header class="chrome">
+    <div class="chrome-inner">
+      <div class="brand">
+        <span class="brand-mark">医</span>
+        <span class="brand-text">
+          <b>医考刷题</b>
+          <em>随机组卷 · 自动判分 · 逐题解析</em>
+        </span>
+      </div>
+      <nav class="chrome-nav" id="chrome-nav"></nav>
+      <div class="chrome-subjects" id="chrome-subjects"></div>
+    </div>
+  </header>
+
+  <main id="app" class="app"></main>
+
+  <footer class="foot">
+    <span>题库来源：人卫1类题库（分章节版）</span>
+    <span class="foot-sep">·</span>
+    <span>记录仅保留在当前标签页，关闭后自动清空</span>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="loading" class="loading" aria-hidden="true">
+    <div class="spinner"></div>
+    <span class="loading-text">正在加载…</span>
+  </div>
+
+  <div id="modal" class="modal" role="dialog" aria-modal="true"></div>
+
+  <script src="assets/js/md.js"></script>
+  <script src="assets/js/engine.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="data/subjects.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

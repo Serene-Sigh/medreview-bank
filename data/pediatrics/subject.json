@@ -1,0 +1,12 @@
+{
+  "id": "pediatrics",
+  "name": "儿科学",
+  "note": "人卫1类题库 · 分章节版",
+  "meta": "data/pediatrics/index.js",
+  "dir": "data/pediatrics",
+  "modules": 1,
+  "chapters": 17,
+  "questions": 3427,
+  "single": 3027,
+  "short": 400
+}

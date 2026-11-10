@@ -1,0 +1,12 @@
+{
+  "id": "surgery",
+  "name": "外科学",
+  "note": "人卫1类题库 · 分章节版",
+  "meta": "data/surgery/index.js",
+  "dir": "data/surgery",
+  "modules": 8,
+  "chapters": 71,
+  "questions": 8000,
+  "single": 7366,
+  "short": 634
+}
