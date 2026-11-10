@@ -1,0 +1,15 @@
+# 本题库仅用于小范围个人复习，不希望被搜索引擎收录。
+# 页面本身保留了 noindex 元标记（允许抓取才能让爬虫读到它并移出索引），
+# 这里只屏蔽体积较大的题库数据目录，避免爬虫反复抓取。
+User-agent: *
+Disallow: /medreview-bank/data/
+
+# 常见 AI 训练/采集爬虫
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /

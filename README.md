@@ -34,6 +34,7 @@
   - **关闭标签页即清空**；
   - **新开标签页是空白**，不同用户/设备之间互不影响。
 - 站点本身不采集、不上传任何信息。
+- 页面带 `noindex` 标记、`robots.txt` 屏蔽数据目录，不会被搜索引擎收录（仅靠链接分享访问）。
 
 ## 本地使用
 
@@ -73,6 +74,7 @@ git add -A && git commit -m "chore: 更新题库" && git push
 
 ```
 index.html              入口
+robots.txt              禁止搜索引擎收录数据目录
 assets/css/app.css      样式（蓝白配色）
 assets/js/md.js         解析渲染（Markdown / 内联 HTML → 安全 HTML）
 assets/js/engine.js     抽题与判分（纯函数）
