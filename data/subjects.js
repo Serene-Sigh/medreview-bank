@@ -78,7 +78,7 @@ window.QBANK_SUBJECTS = [
     "note": "人卫1类题库 · 分章节版",
     "meta": "data/infectious/index.js",
     "dir": "data/infectious",
-    "modules": 1,
+    "modules": 11,
     "chapters": 66,
     "questions": 2829,
     "single": 2538,
