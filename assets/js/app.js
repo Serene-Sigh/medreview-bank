@@ -266,6 +266,7 @@
   // ------------------------------------------------------------- 组卷页
   function renderSetup() {
     var stats = selectionStats();
+    var storeLocal = Store.mode() === 'local';
     var target = Math.min(App.config.count, stats.available);
     var modulesHtml = App.meta.modules.map(function (module) {
       var picked = 0;
@@ -344,6 +345,11 @@
             '</div>' +
           '</div>' +
           '<div class="field">' +
+            '<label class="field-label">记录保存</label>' +
+            '<button class="switch' + (storeLocal ? ' is-on' : '') + '" data-act="toggle-store">' +
+              '<span class="switch-dot"></span><span>在本机长期保存（关闭则关闭标签页即清空）</span></button>' +
+          '</div>' +
+          '<div class="field">' +
             '<label class="field-label">高级</label>' +
             '<button class="switch' + (App.config.includeFig ? ' is-on' : '') + '" data-act="toggle-fig">' +
               '<span class="switch-dot"></span><span>包含缺图题（默认排除 ' + stats.fig + ' 题）</span></button>' +
@@ -357,7 +363,9 @@
               ' 题，按可用题量出卷</p>' : '') +
           '</div>' +
           '<button class="primary-btn" data-act="start"' + (stats.available ? '' : ' disabled') + '>开始答题</button>' +
-          '<p class="side-foot">记录只在当前标签页内有效，关闭标签页后自动清空。</p>' +
+          '<p class="side-foot">' + (storeLocal
+            ? '记录保存在本机浏览器，清理缓存或换设备会丢失。'
+            : '记录只在当前标签页内有效，关闭标签页后自动清空。') + '</p>' +
         '</aside>' +
       '</div>';
   }
@@ -642,12 +650,58 @@
   }
 
   // ------------------------------------------------------------- 历史页
+  function exportRecords() {
+    var stamp = new Date();
+    var name = '刷题记录_' + stamp.getFullYear() + pad2(stamp.getMonth() + 1) + pad2(stamp.getDate()) +
+      '_' + pad2(stamp.getHours()) + pad2(stamp.getMinutes()) + '.json';
+    try {
+      var blob = new Blob([Store.exportState()], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      toast('已导出 ' + name);
+    } catch (err) {
+      toast('导出失败：' + (err.message || err));
+    }
+  }
+
+  function importRecords() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        if (Store.importState(String(reader.result))) {
+          loadConfig();
+          toast('记录已导入');
+          render();
+        } else {
+          toast('文件格式不对，导入失败');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
   function renderHistory() {
     var list = Store.history();
+    var modeLabel = Store.mode() === 'local' ? '本机长期保存' : '仅当前标签页';
     if (!list.length) {
       return '<section class="panel empty-panel"><h2>历史记录</h2>' +
         '<p class="muted">还没有完成过试卷。做完一份后，成绩和每道题的作答都会保存在这里。</p>' +
-        '<button class="primary-btn" data-act="nav" data-view="setup">去组卷</button></section>';
+        '<div class="result-actions" style="justify-content:center">' +
+          '<button class="primary-btn" data-act="nav" data-view="setup">去组卷</button>' +
+          '<button class="ghost" data-act="import-records">导入记录</button>' +
+        '</div></section>';
     }
     var rows = list.map(function (item) {
       var pct = item.count ? Math.round(item.correct / item.count * 100) : 0;
@@ -670,9 +724,15 @@
 
     return '<section class="panel">' +
       '<div class="panel-head"><h2>历史记录</h2>' +
-        '<button class="ghost small danger" data-act="history-clear">清空记录</button></div>' +
+        '<div class="bulk">' +
+          '<button class="ghost small" data-act="export-records">导出记录</button>' +
+          '<button class="ghost small" data-act="import-records">导入记录</button>' +
+          '<button class="ghost small danger" data-act="history-clear">清空记录</button>' +
+        '</div>' +
+      '</div>' +
       '<p class="panel-note">所有学科的试卷都在这里，共 ' + list.length +
-        ' 条（最多保留 30 条）。点「回顾」会切换到对应学科看当次题目。</p>' +
+        ' 条（最多保留 30 条），当前保存方式：<b>' + modeLabel + '</b>。' +
+        '点「回顾」会切换到对应学科看当次题目；「导出记录」可把成绩与错题存成 JSON 备份。</p>' +
       '<div class="history-list">' + rows + '</div>' +
       '</section>';
   }
@@ -1120,6 +1180,27 @@
       case 'toggle-onlynew':
         persistConfig({ onlyNew: !App.config.onlyNew });
         render();
+        break;
+
+      case 'toggle-store':
+        var nextMode = Store.mode() === 'local' ? 'session' : 'local';
+        var applied = Store.setMode(nextMode);
+        if (applied === 'local') {
+          toast('已改为本机长期保存，关闭浏览器也不会丢（清理缓存会丢）');
+        } else if (applied === 'session') {
+          toast('已改为仅本次标签页，关闭标签页后自动清空');
+        } else {
+          toast('浏览器禁用了存储，记录只在当前页面内存中');
+        }
+        render();
+        break;
+
+      case 'export-records':
+        exportRecords();
+        break;
+
+      case 'import-records':
+        importRecords();
         break;
 
       case 'start':

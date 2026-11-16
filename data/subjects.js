@@ -23,5 +23,17 @@ window.QBANK_SUBJECTS = [
     "questions": 3427,
     "single": 3027,
     "short": 400
+  },
+  {
+    "id": "psychiatry",
+    "name": "精神病学",
+    "note": "人卫1类题库 · 分章节版",
+    "meta": "data/psychiatry/index.js",
+    "dir": "data/psychiatry",
+    "modules": 1,
+    "chapters": 25,
+    "questions": 1908,
+    "single": 1572,
+    "short": 336
   }
 ];

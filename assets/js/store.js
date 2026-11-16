@@ -1,12 +1,16 @@
 /*
- * 会话内存储：组卷配置、答题记录、历史试卷、错题本
- * 使用 sessionStorage —— 同一标签页内刷新仍在，关闭标签页即清空，不写入任何长期存储。
- * 浏览器禁用会话存储时自动退化为内存存储，不影响作答。
+ * 记录存储：组卷配置、答题记录、历史试卷、错题本
+ *
+ * 两种模式：
+ *   session（默认）—— sessionStorage，同一标签页刷新仍在，关闭标签页清空，不写长期存储
+ *   local           —— localStorage，关浏览器也保留，清理站点数据/换设备会丢失
+ * 模式偏好保存在 localStorage 的一个小键里；浏览器禁用存储时自动退化为内存，不影响作答。
  */
 (function (global) {
   'use strict';
 
   var KEY = 'medquiz.v1';
+  var MODE_KEY = 'medquiz.mode';
   var HISTORY_LIMIT = 30;
 
   var DEFAULT_CONFIG = {
@@ -21,22 +25,51 @@
   var memory = null;
   var storage = null;
   var storageChecked = false;
+  var currentMode = 'session';
 
-  /** 只在第一次使用时探测 sessionStorage，并验证真的可写（隐私模式可能抛异常） */
+  function probe(store) {
+    if (!store) return false;
+    try {
+      var probeKey = KEY + '.probe';
+      store.setItem(probeKey, '1');
+      store.removeItem(probeKey);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  /** 只读取一个偏好键；读失败按 session 处理 */
+  function preferredMode() {
+    try {
+      var ls = global.localStorage;
+      return ls && ls.getItem(MODE_KEY) === 'local' ? 'local' : 'session';
+    } catch (err) {
+      return 'session';
+    }
+  }
+
+  /**
+   * 选择后端。
+   * session 模式只在 sessionStorage 不可用时退化为内存；不会偷偷改成 localStorage。
+   * local 模式优先 localStorage，不可用时退回 sessionStorage。
+   */
   function pickStorage() {
     if (storageChecked) return storage;
     storageChecked = true;
-    try {
-      var candidate = global.sessionStorage;
-      if (!candidate) return null;
-      var probe = KEY + '.probe';
-      candidate.setItem(probe, '1');
-      candidate.removeItem(probe);
-      storage = candidate;
-    } catch (err) {
-      storage = null;
+    var candidates = preferredMode() === 'local'
+      ? [['local', global.localStorage], ['session', global.sessionStorage]]
+      : [['session', global.sessionStorage]];
+    for (var i = 0; i < candidates.length; i++) {
+      if (probe(candidates[i][1])) {
+        storage = candidates[i][1];
+        currentMode = candidates[i][0];
+        return storage;
+      }
     }
-    return storage;
+    storage = null;
+    currentMode = 'session';
+    return null;
   }
 
   function emptyState() {
@@ -76,10 +109,70 @@
   }
 
   var Store = {
-    /** 会话存储是否可用（不可用时仅本页内存有效，刷新即丢失） */
+    /** 是否能真正写盘（false 时仅本页内存有效，刷新即丢失） */
     isAvailable: function () {
       load();
       return !!pickStorage();
+    },
+
+    /** 当前生效的模式：'local' | 'session' | 'memory' */
+    mode: function () {
+      load();
+      pickStorage();
+      return storage ? currentMode : 'memory';
+    },
+
+    /** 切换存储模式，并把当前记录整体迁移到新后端 */
+    setMode: function (next) {
+      var wantLocal = next === 'local';
+      var state = load();
+
+      try {
+        if (global.localStorage) {
+          if (wantLocal) global.localStorage.setItem(MODE_KEY, 'local');
+          else global.localStorage.removeItem(MODE_KEY);
+        }
+      } catch (err) {
+        // 偏好写不进去也不影响本次切换
+      }
+
+      var previous = storage;
+      storage = null;
+      storageChecked = false;
+      var target = pickStorage();
+
+      if (target && target !== previous) {
+        if (previous) {
+          try { previous.removeItem(KEY); } catch (err) { /* 忽略 */ }
+        }
+        try {
+          target.setItem(KEY, JSON.stringify(state));
+        } catch (err) {
+          storage = null;
+        }
+      }
+      return storage ? currentMode : 'memory';
+    },
+
+    /** 导出当前全部记录（用于备份/换设备） */
+    exportState: function () {
+      return JSON.stringify(load(), null, 2);
+    },
+
+    /** 导入记录，成功返回 true */
+    importState: function (json) {
+      var parsed;
+      try {
+        parsed = JSON.parse(json);
+      } catch (err) {
+        return false;
+      }
+      if (!parsed || typeof parsed !== 'object' || !parsed.config || !parsed.history) return false;
+      parsed.records = parsed.records || {};
+      parsed.version = parsed.version || 1;
+      memory = parsed;
+      save();
+      return true;
     },
 
     config: function (subjectId) {
