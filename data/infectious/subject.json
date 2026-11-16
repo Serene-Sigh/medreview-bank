@@ -1,0 +1,12 @@
+{
+  "id": "infectious",
+  "name": "传染病学",
+  "note": "人卫1类题库 · 分章节版",
+  "meta": "data/infectious/index.js",
+  "dir": "data/infectious",
+  "modules": 1,
+  "chapters": 66,
+  "questions": 2829,
+  "single": 2538,
+  "short": 291
+}

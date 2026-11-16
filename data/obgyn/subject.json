@@ -1,0 +1,12 @@
+{
+  "id": "obgyn",
+  "name": "妇产科学",
+  "note": "人卫1类题库 · 分章节版",
+  "meta": "data/obgyn/index.js",
+  "dir": "data/obgyn",
+  "modules": 1,
+  "chapters": 34,
+  "questions": 3521,
+  "single": 3203,
+  "short": 318
+}

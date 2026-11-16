@@ -1,0 +1,12 @@
+{
+  "id": "neurology",
+  "name": "神经病学",
+  "note": "人卫1类题库 · 分章节版",
+  "meta": "data/neurology/index.js",
+  "dir": "data/neurology",
+  "modules": 1,
+  "chapters": 22,
+  "questions": 2707,
+  "single": 2370,
+  "short": 337
+}

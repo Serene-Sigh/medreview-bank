@@ -1,0 +1,12 @@
+{
+  "id": "internal",
+  "name": "内科学",
+  "note": "人卫1类题库 · 分章节版",
+  "meta": "data/internal/index.js",
+  "dir": "data/internal",
+  "modules": 8,
+  "chapters": 141,
+  "questions": 8627,
+  "single": 7968,
+  "short": 659
+}
