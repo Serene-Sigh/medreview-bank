@@ -12,6 +12,7 @@
     tab: 'setup',
     sid: '',
     meta: null,
+    menuOpen: false,
     expanded: {},
     selection: {},
     config: null,
@@ -254,13 +255,73 @@
         tab.label + '</button>';
     }).join('');
 
-    var subjects = QBANK.subjects.map(function (subject) {
-      return '<button class="subject' + (subject.id === App.sid ? ' is-active' : '') +
-        '" data-act="subject" data-sid="' + esc(subject.id) + '">' + esc(subject.name) + '</button>';
+    var current = subjectEntry(App.sid);
+    var items = QBANK.subjects.map(function (subject) {
+      var active = subject.id === App.sid;
+      return '<button class="subject-item' + (active ? ' is-active' : '') + '"' +
+        ' role="menuitemradio" aria-checked="' + (active ? 'true' : 'false') + '"' +
+        ' data-act="subject" data-sid="' + esc(subject.id) + '">' +
+        '<span class="subject-check">' + (active ? '✓' : '') + '</span>' +
+        '<span class="subject-name">' + esc(subject.name) + '</span>' +
+        '<span class="subject-count">' + fmt(subject.questions) + ' 题</span>' +
+        '</button>';
     }).join('');
 
+    var switcher = '<div class="subject-switch' + (App.menuOpen ? ' is-open' : '') + '">' +
+      '<button class="subject-trigger" data-act="subject-menu" aria-haspopup="menu" aria-expanded="' +
+        (App.menuOpen ? 'true' : 'false') + '" aria-label="切换学科">' +
+        '<span class="subject-label">学科</span>' +
+        '<span class="subject-current">' + esc(current ? current.name : '') + '</span>' +
+        '<span class="subject-caret">▾</span>' +
+      '</button>' +
+      (App.menuOpen
+        ? '<div class="subject-menu" role="menu" aria-label="选择学科">' + items + '</div>'
+        : '') +
+      '</div>';
+
     $('#chrome-nav').innerHTML = nav;
-    $('#chrome-subjects').innerHTML = subjects;
+    $('#chrome-subjects').innerHTML = switcher;
+
+    // 遮罩放在 body 层，避免被顶栏的 backdrop-filter 限制成只覆盖顶栏
+    var overlay = document.getElementById ? document.getElementById('subject-overlay') : null;
+    if (overlay) {
+      overlay.className = 'subject-backdrop' + (App.menuOpen ? ' is-on' : '');
+    }
+  }
+
+  /** 切换学科：载入元数据、恢复该学科的组卷配置 */
+  function switchSubject(sid) {
+    App.menuOpen = false;
+    return ensureSubject(sid).then(function () {
+      App.sid = sid;
+      App.meta = QBANK.metas[sid];
+      loadConfig();
+      App.tab = 'setup';
+      App.view = 'setup';
+      App.result = null;
+      App.review = null;
+      App.reviewSource = null;
+      render();
+    }).catch(function (err) { toast(err.message); });
+  }
+
+  function focusMenuItem() {
+    var node = document.querySelector('.subject-item.is-active') || document.querySelector('.subject-item');
+    if (node && node.focus) node.focus();
+  }
+
+  function focusSubjectTrigger() {
+    var node = document.querySelector('.subject-trigger');
+    if (node && node.focus) node.focus();
+  }
+
+  /** 菜单展开时用上下键在学科之间移动焦点 */
+  function moveMenuFocus(step) {
+    var items = [].slice.call(document.querySelectorAll('.subject-item'));
+    if (!items.length) return;
+    var index = items.indexOf(document.activeElement);
+    var next = index < 0 ? 0 : (index + step + items.length) % items.length;
+    if (items[next] && items[next].focus) items[next].focus();
   }
 
   // ------------------------------------------------------------- 组卷页
@@ -1093,6 +1154,7 @@
     switch (act) {
       case 'nav':
         var view = target.getAttribute('data-view');
+        App.menuOpen = false;
         if (App.view === 'quiz' && App.paper) {
           openModal('退出本次答题？', '当前作答进度不会保存。', '退出', function () {
             stopTimer();
@@ -1113,17 +1175,36 @@
         render();
         break;
 
+      case 'subject-menu':
+        App.menuOpen = !App.menuOpen;
+        renderChrome();
+        if (App.menuOpen) focusMenuItem();
+        break;
+
+      case 'subject-close':
+        App.menuOpen = false;
+        renderChrome();
+        focusSubjectTrigger();
+        break;
+
       case 'subject':
         var sid = target.getAttribute('data-sid');
-        if (sid === App.sid) break;
-        ensureSubject(sid).then(function () {
-          App.sid = sid;
-          App.meta = QBANK.metas[sid];
-          loadConfig();
-          App.tab = 'setup';
-          App.view = 'setup';
-          render();
-        }).catch(function (err) { toast(err.message); });
+        if (!sid || sid === App.sid) {
+          App.menuOpen = false;
+          renderChrome();
+          break;
+        }
+        if (App.view === 'quiz' && App.paper) {
+          App.menuOpen = false;
+          renderChrome();
+          openModal('切换学科？', '当前试卷的作答进度不会保存，确定要切换学科吗？', '切换', function () {
+            stopTimer();
+            App.paper = null;
+            switchSubject(sid);
+          });
+          break;
+        }
+        switchSubject(sid);
         break;
 
       case 'module':
@@ -1377,6 +1458,20 @@
 
   // ------------------------------------------------------------- 键盘
   function handleKey(event) {
+    if (App.menuOpen) {
+      if (event.key === 'Escape') {
+        App.menuOpen = false;
+        renderChrome();
+        focusSubjectTrigger();
+        event.preventDefault();
+        return;
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        moveMenuFocus(event.key === 'ArrowDown' ? 1 : -1);
+        event.preventDefault();
+        return;
+      }
+    }
     if (App.view !== 'quiz' || !App.paper) return;
     if (event.target && /^(INPUT|TEXTAREA)$/.test(event.target.tagName)) return;
     if (document.querySelector('#modal.is-on')) return;
