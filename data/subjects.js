@@ -1,4 +1,5 @@
 /* 自动生成，请勿手改；新增学科后重新运行 tools/build_bank.py 即可 */
+window.QBANK_VERSION = "20261116231110";
 window.QBANK_SUBJECTS = [
   {
     "id": "surgery",

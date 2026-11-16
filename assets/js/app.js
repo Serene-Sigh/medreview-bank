@@ -118,11 +118,18 @@
     return null;
   }
 
+  /** 给静态数据文件加构建版本号，避免浏览器/CDN 复用旧缓存 */
+  function versioned(src) {
+    var version = QBANK.version;
+    if (!version || !src) return src;
+    return src + (src.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(version);
+  }
+
   function ensureSubject(sid) {
     if (QBANK.metas[sid]) return Promise.resolve(QBANK.metas[sid]);
     var entry = subjectEntry(sid);
     if (!entry) return Promise.reject(new Error('学科不存在：' + sid));
-    return loadScript(entry.meta).then(function () { return QBANK.metas[sid]; });
+    return loadScript(versioned(entry.meta)).then(function () { return QBANK.metas[sid]; });
   }
 
   function ensureModules(sid, moduleIds) {
@@ -132,7 +139,7 @@
     }).map(function (mid) {
       var module = meta.modules.filter(function (m) { return m.id === mid; })[0];
       if (!module) return Promise.resolve();
-      return loadScript(module.file);
+      return loadScript(versioned(module.file));
     });
     return Promise.all(jobs);
   }

@@ -9,10 +9,12 @@
     subjects: [],
     metas: Object.create(null),
     banks: Object.create(null),
+    version: '',
 
-    /** 读取 data/subjects.js 写入的学科列表 */
+    /** 读取 data/subjects.js 写入的学科列表与构建版本 */
     wire: function () {
       this.subjects = global.QBANK_SUBJECTS || [];
+      this.version = global.QBANK_VERSION || '';
       return this.subjects;
     },
 
